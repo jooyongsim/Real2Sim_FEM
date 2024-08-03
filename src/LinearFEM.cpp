@@ -46,7 +46,7 @@ int LinearFEM::loadMeshFromElmerFiles(std::string fileName){
 
 		// let's see if we have a .names file and print it to stdout for convenience
 		std::string line;
-		ifstream in((fileName+".names").c_str());
+		std::ifstream in((fileName+".names").c_str());
 		if( in.is_open() ) cout << endl << "% --- --- --- " << fileName << ".names --- --- --- " << endl;
 		while (in.good()){
 			getline(in, line);

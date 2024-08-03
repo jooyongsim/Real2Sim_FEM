@@ -40,7 +40,7 @@ int ElmerReader::readElems(elem_map &elems, ELEM_TYPE elemType,
 	if (bodyIDs != NULL)
 	bodyIDs->clear();
 
-	ifstream in(elemFile.c_str());
+	std::ifstream in(elemFile.c_str());
 	if (!in.is_open())
 	return -1;
 	while (in.good()) {
@@ -99,7 +99,7 @@ int ElmerReader::readNodes(node_map &nodes) {
 	nodes.clear();
 
 	// printf("reading nodes from \"%s\"\n",nodeFile.c_str());
-	ifstream in(nodeFile.c_str());
+	std::ifstream in(nodeFile.c_str());
 	if (!in.is_open())
 	return -1;
 	// printf("file opened successfully\n");
