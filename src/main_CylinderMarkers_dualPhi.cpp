@@ -16,6 +16,7 @@
 #include "vtkUnstructuredGrid.h"
 
 using namespace MyFEM;
+using std::ofstream;
 
 class SimData{
 public:

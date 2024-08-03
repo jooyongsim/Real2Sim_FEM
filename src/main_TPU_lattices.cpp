@@ -14,6 +14,7 @@
 //#include "../LBFGSpp/Newton.h"
 
 using namespace MyFEM;
+using std::ofstream;
 
 int main_TPUbar(int argc, char* argv[]){
 	// args:

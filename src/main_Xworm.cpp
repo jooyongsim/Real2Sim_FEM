@@ -13,6 +13,7 @@
 //#include "../LBFGSpp/Newton.h"
 //#include "../LBFGSpp/PLBFGS.h"
 using namespace MyFEM;
+using std::ofstream;
 
 #include <vtkUnstructuredGrid.h>
 #include <sstream>

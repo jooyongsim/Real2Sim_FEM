@@ -16,6 +16,7 @@
 #include "vtkUnstructuredGrid.h"
 
 using namespace MyFEM;
+using std::ofstream;
 
 int main_CylinderMarkers_dualPhi(int argc, char* argv[]); // in main_CylinderMarkers_dualPhi.cpp
 
