@@ -6,7 +6,7 @@
 #include <vtkSmartPointer.h>
 class vtkUnstructuredGrid;
 
-#include <mmg/mmg3d/libmmgtypes.h>
+#include <mmg/common/libmmgtypes.h>
 
 namespace MyFEM{
 	class Remesher{
