@@ -11,7 +11,7 @@
 #include "ViscousMaterialParameterHandler.h"
 #include "EigenmodeViscosityModel.h"
 #include "DifferentiableSpline.h"
-#include "../LBFGSpp/include/LBFGS.h"
+#include "../LBFGSpp/LBFGS.h"
 //#include "../LBFGSpp/Newton.h"
 //#include "../LBFGSpp/PLBFGS.h"
 //Note: we could also try https://github.com/PatWie/CppNumericalSolvers -- that one also has an L-BFGS-B solver with box constraints l <= x <= u
