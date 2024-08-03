@@ -202,7 +202,8 @@ int main_TPUbar(int argc, char* argv[]){
 
 		if( useGaussNewton ){
 			DirectSensitivity theSensitivity(thePhi, theQ, theFEM);
-			LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions); //minimize with Gauss-Newton
+			//LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions); //minimize with Gauss-Newton
+			LBFGSpp::LBFGSSolver<double> solver(optimOptions);
 			printf("\n%% Optimizing with Gauss-Newton (direct sensitivity analysis) ");
 
 			theSensitivity.setupDynamicSim(dt,tsteps, true , outFile );

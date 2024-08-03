@@ -280,7 +280,8 @@ int main_Xworm(int argc, char* argv[]){
 		theQ.getCurrentParams(q, theFEM);
 		DirectSensitivity theSensitivity(thePhi, theQ, theFEM);
 		optimOptions.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_ARMIJO;
-		LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions); //minimize with Gauss-Newton
+		//LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions); //minimize with Gauss-Newton
+		LBFGSpp::LBFGSSolver<double> solver(optimOptions);
 		printf("\n%% Optimizing with Gauss-Newton (direct sensitivity analysis) ");
 		theSensitivity.setupDynamicSim(dt,tsteps, true , outFile, (enablePreview?(&thePreview):NULL) );		
 		r = solver.minimize(theSensitivity, q, phi);
