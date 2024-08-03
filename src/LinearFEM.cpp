@@ -713,8 +713,28 @@ void LinearFEM::updateDataMaps(){
 	new (&restCoords)     Vect3Map((double*)meshBoundary->GetPoints()->GetVoidPointer(0)    , 3,meshBoundary->GetPoints()->GetNumberOfPoints());
 	new (&x)              VectXMap((double*)mesh->GetPoints()->GetVoidPointer(0), 3*mesh->GetPoints()->GetNumberOfPoints());
 
-	new (&elems)          TetraMap(mesh->GetCells()->GetPointer()+1 ,4,mesh->GetCells()->GetNumberOfCells()); // +1 because we need to skip the first element in the raw array (each row starts with the number of indices ==4 of the following element)
-	new (&bndElems)         TriMap(meshBoundary->GetCells()->GetPointer()+1 ,3,meshBoundary->GetCells()->GetNumberOfCells()); // +1 because we need to skip the first element in the raw array (each row starts with the number of indices ==3 of the following element)
+	// new (&elems)          TetraMap(mesh->GetCells()->GetPointer()+1, 4, mesh->GetCells()->GetNumberOfCells()); // +1 because we need to skip the first element in the raw array (each row starts with the number of indices ==4 of the following element)
+	// new (&bndElems)         TriMap(meshBoundary->GetCells()->GetPointer()+1, 3, meshBoundary->GetCells()->GetNumberOfCells()); // +1 because we need to skip the first element in the raw array (each row starts with the number of indices ==3 of the following element)
+
+    auto processCells = [](vtkSmartPointer<vtkCellArray> cells, int numPtsPerCell) {
+        std::vector<vtkIdType> cellArray;
+        vtkNew<vtkCellArrayIterator> cellIter;
+        cells->NewIterator(cellIter);
+
+        for (cellIter->GoToFirstCell(); !cellIter->IsDoneWithTraversal(); cellIter->GoToNextCell()) {
+            vtkIdType npts;
+            const vtkIdType* pts;
+            cellIter->GetCurrentCell(npts, pts);
+            cellArray.insert(cellArray.end(), pts, pts + npts);
+        }
+        return cellArray;
+    };
+
+    std::vector<vtkIdType> elemArray = processCells(mesh->GetCells(), 4);
+    new (&elems) TetraMap(elemArray.data(), 4, mesh->GetCells()->GetNumberOfCells());
+
+    std::vector<vtkIdType> bndElemArray = processCells(meshBoundary->GetCells(), 3);
+    new (&bndElems) TriMap(bndElemArray.data(), 3, meshBoundary->GetCells()->GetNumberOfCells());
 
 	vtkAbstractArray* data;
 
