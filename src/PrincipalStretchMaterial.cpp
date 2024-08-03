@@ -5,6 +5,8 @@
 #include <unsupported\Eigen\AutoDiff>
 
 using namespace MyFEM;
+using std::isnan;
+using std::isinf;
 
 // local helper function
 void computePrincipalStretchAndDerivatives(Eigen::Vector3d& ps, Eigen::Matrix<double, 3,9>& dpsdF, const Eigen::Matrix3d& F){ 

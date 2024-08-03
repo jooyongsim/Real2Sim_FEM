@@ -17,6 +17,8 @@
 
 using namespace MyFEM;
 using std::ofstream;
+using std::isnan;
+using std::isinf;
 
 class SimData{
 public:

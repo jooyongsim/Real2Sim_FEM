@@ -4,6 +4,8 @@
 #include "fieldNames.h"
 
 using namespace MyFEM;
+using std::isnan;
+using std::isinf;
 
 #include <vtkPoints.h>
 #include <vtkPointData.h>

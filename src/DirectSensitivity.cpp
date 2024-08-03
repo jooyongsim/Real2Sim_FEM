@@ -9,6 +9,8 @@
 #include <omp.h> // for timing
 
 using namespace MyFEM;
+using std::isnan;
+using std::isinf;
 
 double SensitivityAnalysis::operator()(const Eigen::VectorXd& q, Eigen::VectorXd& dphi_dq){
 	if( wnd!=NULL ) wnd->reset();
