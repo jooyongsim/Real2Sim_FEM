@@ -2,6 +2,7 @@
 #define SENSITIVITYANALYSIS_H
 
 #include "types.h"
+#include <cfloat> // Include this header for DBL_
 
 namespace MyFEM{
 	class LinearFEM;

@@ -8,6 +8,8 @@
 #include <vtkRenderWindow.h>
 #include <omp.h> // for timing
 
+#include <cfloat> // Include this header for DBL_
+
 using namespace MyFEM;
 using std::isnan;
 using std::isinf;

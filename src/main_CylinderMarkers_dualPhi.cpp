@@ -15,6 +15,8 @@
 
 #include "vtkUnstructuredGrid.h"
 
+#include <cfloat> // Include this header for DBL_
+
 using namespace MyFEM;
 using std::ofstream;
 using std::isnan;

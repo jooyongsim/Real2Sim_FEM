@@ -6,6 +6,7 @@
 #include "ContactFEM.h"
 
 #include <vtkRenderWindow.h>
+#include <cfloat> // Include this header for DBL_
 
 using namespace MyFEM;
 
