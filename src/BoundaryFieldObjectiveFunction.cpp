@@ -53,7 +53,7 @@ double BoundaryFieldObjectiveFunction::evaluate( LinearFEM& fem,
 
 	if(!debugFileName.empty() && phiVal > DBL_EPSILON){
 		std::string fname(debugFileName); fname.append( std::to_string(debugCount) ); fname.append(".txt");
-		ofstream out(fname);
+		std::ofstream out(fname);
 		if( out.good() ){
 			for(std::map<unsigned int, Eigen::VectorXd>::iterator it=debugData.begin(); it!=debugData.end(); ++it){
 				out << it->second.transpose() << endl;
