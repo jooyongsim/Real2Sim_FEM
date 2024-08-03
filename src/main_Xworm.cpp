@@ -11,7 +11,7 @@
 #include "EigenmodeViscosityModel.h"
 #include "../LBFGSpp/LBFGS.h"
 //#include "../LBFGSpp/Newton.h"
-#include "../LBFGSpp/PLBFGS.h"
+//#include "../LBFGSpp/PLBFGS.h"
 using namespace MyFEM;
 
 #include <vtkUnstructuredGrid.h>
