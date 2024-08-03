@@ -159,6 +159,8 @@ public:
     /// the \ref ftol parameter and smaller than \c 1.0.
     ///
     Scalar wolfe;
+    
+    Scalar init_step;
 
 public:
     ///
@@ -181,6 +183,7 @@ public:
         ftol           = Scalar(1e-4);
         wolfe          = Scalar(0.9);
         // clang-format on
+        init_step      = Scalar(1e-3);
     }
 
     ///

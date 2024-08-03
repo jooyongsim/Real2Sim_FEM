@@ -54,7 +54,7 @@ namespace MyFEM{
 		optimOptions.past = 1; /*0 == off, 1 == compare to previous iteration to detect if we got stuck ...*/
 		optimOptions.delta = 1e-8; /*relative change of objective function to previous iteration below which we give up*/
 		optimOptions.max_iterations = 150;
-		optimOptions.init_step = 1e-2;
+		//optimOptions.init_step = 1e-2;
 		return optimOptions;
 	}
 }
