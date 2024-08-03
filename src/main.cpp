@@ -155,10 +155,10 @@ int main_Box_wMarkers(int argc, char* argv[]){
 
 		if( 0 /*testing: output upsampled input data ...*/){
 			fileName << argv[2] << "_upsampled.log";
-			ofstream tbOut(fileName.str().c_str()); tbOut << std::setprecision(16);
+			std::ofstream tbOut(fileName.str().c_str()); tbOut << std::setprecision(16);
 			fileName.str(""); fileName.clear();
 			fileName << argv[2] << "_up_velocity.log"; // also write velocities
-			ofstream tbOutV(fileName.str().c_str()); tbOutV << std::setprecision(16);
+			std::ofstream tbOutV(fileName.str().c_str()); tbOutV << std::setprecision(16);
 			for(int i=0; i<trackedIDs.size(); ++i){
 				tbOut << trackedIDs[i] << " ";
 			}	tbOut << endl;
@@ -305,7 +305,7 @@ int main_Box_wMarkers(int argc, char* argv[]){
 		cout << endl << "% solver iterations " << r << ", fcn.evals " << ev;
 		fileName.str(""); fileName.clear();
 		fileName << outDir << argv[1] << "_optimResult.txt";
-		ofstream optOut(fileName.str());
+		std::ofstream optOut(fileName.str());
 		if( rInit>0 ) optOut << "% initial elastostatic solver iterations " << rInit << ", fcn.evals " << evInit << endl;
 		optOut << "% solver iterations " << r << ", fcn.evals " << ev << ", objective function value " << phi << endl;
 		optOut << endl << "% params:" << endl << q << endl;
@@ -326,7 +326,7 @@ int main_Box_wMarkers(int argc, char* argv[]){
 		trackedBoundaries.insert(14); trackedBoundaries.insert(15); trackedBoundaries.insert(16);
 		fileName.str(""); fileName.clear();
 		fileName << outDir << argv[1] << "_trackedBCs.log";
-		ofstream tbOut(fileName.str().c_str()); tbOut << std::setprecision(18);
+		std::ofstream tbOut(fileName.str().c_str()); tbOut << std::setprecision(18);
 		for(id_set::iterator tb=trackedBoundaries.begin(); tb!=trackedBoundaries.end(); ++tb){
 			tbOut << *tb << " ";
 		}	tbOut << endl;
@@ -793,7 +793,7 @@ int main_Bunny(int argc, char* argv[]){
 		cout << endl << "% solver iterations " << r << ", fcn.evals " << ev;
 		fileName.str(""); fileName.clear();
 		fileName << outDir << argv[1] << "_optimResult.txt";
-		ofstream optOut(fileName.str());
+		std::ofstream optOut(fileName.str());
 		optOut << "% solver iterations " << r << ", fcn.evals " << ev << ", objective function value " << phi << endl;
 		optOut << endl << "% params:" << endl << q << endl;
 		optOut << endl << "% gradient:" << endl << dphi << endl;
@@ -816,7 +816,7 @@ int main_Bunny(int argc, char* argv[]){
 	// write tracked fields to plain text log
 	fileName.str(""); fileName.clear();
 	fileName << outDir << argv[1] << "_trackedBCs.log";
-	ofstream tbOut(fileName.str().c_str()); tbOut << std::setprecision(18);
+	std::ofstream tbOut(fileName.str().c_str()); tbOut << std::setprecision(18);
 	for(int i=0; i<trackedIDs.size(); ++i){
 		tbOut << trackedIDs[i] << " ";
 	}	tbOut << endl;
