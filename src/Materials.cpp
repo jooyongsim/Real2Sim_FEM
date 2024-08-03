@@ -1,5 +1,6 @@
 #include "Materials.h"
 #include "LinearFEM.h"
+#include <cfloat> // Include this header for DBL_MIN, FLT_EPSILON, and DBL_EPSILON
 
 using namespace MyFEM;
 
