@@ -141,7 +141,10 @@ void Remesher::buildMMGmesh(LinearFEM& fem){
 	}
 
 	for(unsigned int k=0; k<m; ++k){
-		vtkIdType tmp, *e;
+		// vtkIdType tmp, *e;
+		vtkIdType tmp;
+	    const vtkIdType* e; // Declare as a pointer to const vtkIdType
+		
 		fem.mesh->GetCellPoints(k,tmp,e);
 		MMG3D_Set_tetrahedron(mmgMesh, e[0]+1, e[1]+1, e[2]+1, e[3]+1, fem.getBodyId(k) ,k+1); // MMG demands 1-numbered nodes and elements!
 	}

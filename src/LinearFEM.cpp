@@ -743,8 +743,8 @@ void LinearFEM::updateDataMaps(){
         vtkSmartPointer<vtkCellArrayIterator> cellIter = vtkSmartPointer<vtkCellArrayIterator>::Take(cells->NewIterator());
 
         vtkIdType npts;
-        // const vtkIdType* pts;
-		vtkIdType* pts;
+        const vtkIdType* pts;
+		// vtkIdType* pts;
 
         for (cellIter->GoToFirstCell(); !cellIter->IsDoneWithTraversal(); cellIter->GoToNextCell()) {
             cellIter->GetCurrentCell(npts, pts);
