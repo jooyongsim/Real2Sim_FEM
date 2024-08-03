@@ -2,8 +2,8 @@
 // Modified by Yixuan Qiu
 // License: MIT
 
-#ifndef SPECTRA_LOBPCG_SOLVER_H
-#define SPECTRA_LOBPCG_SOLVER_H
+#ifndef LOBPCG_SOLVER
+#define LOBPCG_SOLVER
 
 #include <functional>
 #include <map>
@@ -130,7 +130,7 @@ private:
 
         Eigen::SimplicialLDLT<SparseMatrix> chol_MBM(M.transpose() * BM);
 
-        if (chol_MBM.info() != Eigen::Success)
+        if (chol_MBM.info() != SUCCESSFUL)
         {
             // LDLT decomposition fail
             m_info = chol_MBM.info();
@@ -164,7 +164,7 @@ private:
             true_BM = M;
         }
 
-        return Eigen::Success;
+        return SUCCESSFUL;
     }
 
     void applyConstraintsInPlace(SparseMatrix& X, SparseMatrix& Y,
@@ -188,10 +188,10 @@ private:
     }
 
     /*
-                return
-                'AB
-                CD'
-                */
+		return
+		'AB
+		CD'
+		*/
     Matrix stack_4_matricies(Matrix A, Matrix B,
                              Matrix C, Matrix D)
     {
@@ -221,10 +221,10 @@ private:
         return result;
     }
 
-    void sort_epairs(Vector& evalues, Matrix& evectors, SortRule SelectionRule)
+    void sort_epairs(Vector& evalues, Matrix& evectors, int SelectionRule)
     {
         std::function<bool(Scalar, Scalar)> cmp;
-        if (SelectionRule == SortRule::SmallestAlge)
+        if (SelectionRule == SMALLEST_ALGE)
             cmp = std::less<Scalar>{};
         else
             cmp = std::greater<Scalar>{};
@@ -291,17 +291,17 @@ public:
     LOBPCGSolver(const SparseMatrix& A, const SparseMatrix X) :
         m_n(A.rows()),
         m_nev(X.cols()),
-        A(A),
-        X(X),
+        m_info(NOT_COMPUTED),
         flag_with_constraints(false),
         flag_with_B(false),
         flag_with_preconditioner(false),
-        m_info(Eigen::InvalidInput)
+        A(A),
+        X(X)
     {
         if (A.rows() != X.rows() || A.rows() != A.cols())
             throw std::invalid_argument("Wrong size");
 
-        // if (m_n < 5* m_nev)
+        //if (m_n < 5* m_nev)
         //	throw std::invalid_argument("The problem size is small compared to the block size. Use standard eigensolver");
     }
 
@@ -343,7 +343,7 @@ public:
 
         // Make initial vectors orthonormal
         // implicit BX declaration
-        if (orthogonalizeInPlace(X, m_B, BX) != Eigen::Success)
+        if (orthogonalizeInPlace(X, m_B, BX) != SUCCESSFUL)
         {
             max_iter = 0;
         }
@@ -353,7 +353,7 @@ public:
         // first approximation via a dense problem
         Eigen::EigenSolver<Matrix> eigs(Matrix(X.transpose() * AX));
 
-        if (eigs.info() != Eigen::Success)
+        if (eigs.info() != SUCCESSFUL)
         {
             m_info = eigs.info();
             max_iter = 0;
@@ -362,7 +362,7 @@ public:
         {
             m_evalues = eigs.eigenvalues().real();
             m_evectors = eigs.eigenvectors().real();
-            sort_epairs(m_evalues, m_evectors, SortRule::SmallestAlge);
+            sort_epairs(m_evalues, m_evectors, SMALLEST_ALGE);
             sparse_eVecX = m_evectors.sparseView();
 
             X = X * sparse_eVecX;
@@ -381,7 +381,7 @@ public:
 
             if (BlockSize == 0)
             {
-                m_info = Eigen::Success;
+                m_info = SUCCESSFUL;
                 break;
             }
 
@@ -410,7 +410,7 @@ public:
                 applyConstraintsInPlace(m_residuals, m_Y, m_B);
             }
 
-            if (orthogonalizeInPlace(m_residuals, m_B, BR) != Eigen::Success)
+            if (orthogonalizeInPlace(m_residuals, m_B, BR) != SUCCESSFUL)
             {
                 break;
             }
@@ -419,7 +419,7 @@ public:
             // Orthonormalize conjugate directions
             if (iter_num > 0)
             {
-                if (orthogonalizeInPlace(directions, m_B, BD, true) != Eigen::Success)
+                if (orthogonalizeInPlace(directions, m_B, BD, true) != SUCCESSFUL)
                 {
                     break;
                 }
@@ -448,27 +448,28 @@ public:
                 gramB = stack_4_matricies(Matrix::Identity(m_nev, m_nev), XBR, XBR.transpose(), Matrix::Identity(BlockSize, BlockSize));
             }
 
-            // Calculate the lowest/largest m eigenpairs; Solve the generalized eigenvalue problem.
+            //calculate the lowest/largest m eigenpairs; Solve the generalized eigenvalue problem.
             DenseSymMatProd<Scalar> Aop(gramA);
             DenseCholesky<Scalar> Bop(gramB);
 
-            SymGEigsSolver<DenseSymMatProd<Scalar>, DenseCholesky<Scalar>, GEigsMode::Cholesky>
-                geigs(Aop, Bop, m_nev, (std::min)(10, int(gramA.rows()) - 1));
+            SymGEigsSolver<Scalar, SMALLEST_ALGE, DenseSymMatProd<Scalar>,
+                           DenseCholesky<Scalar>, GEIGS_CHOLESKY>
+                geigs(&Aop, &Bop, m_nev, std::min(10, int(gramA.rows()) - 1));
 
             geigs.init();
-            geigs.compute(SortRule::SmallestAlge);
+            int nconv = geigs.compute();
 
-            // Mat evecs
-            if (geigs.info() == CompInfo::Successful)
+            //Mat evecs;
+            if (geigs.info() == SUCCESSFUL)
             {
                 m_evalues = geigs.eigenvalues();
                 m_evectors = geigs.eigenvectors();
-                sort_epairs(m_evalues, m_evectors, SortRule::SmallestAlge);
+                sort_epairs(m_evalues, m_evectors, SMALLEST_ALGE);
             }
             else
             {
                 // Problem With General EgenVec
-                m_info = Eigen::NoConvergence;
+                m_info = geigs.info();
                 break;
             }
 
@@ -524,7 +525,7 @@ public:
 
         if (BlockSize == 0)
         {
-            m_info = Eigen::Success;
+            m_info = SUCCESSFUL;
         }
     }  // compute
 
@@ -548,4 +549,4 @@ public:
 
 }  // namespace Spectra
 
-#endif  // SPECTRA_LOBPCG_SOLVER_H
+#endif  // LOBPCG_SOLVER

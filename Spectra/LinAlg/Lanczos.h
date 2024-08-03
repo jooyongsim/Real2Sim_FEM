@@ -1,16 +1,16 @@
-// Copyright (C) 2018-2023 Yixuan Qiu <yixuan.qiu@cos.name>
+// Copyright (C) 2018-2019 Yixuan Qiu <yixuan.qiu@cos.name>
 //
 // This Source Code Form is subject to the terms of the Mozilla
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#ifndef SPECTRA_LANCZOS_H
-#define SPECTRA_LANCZOS_H
+#ifndef LANCZOS_H
+#define LANCZOS_H
 
 #include <Eigen/Core>
 #include <cmath>      // std::sqrt
-#include <utility>    // std::forward
 #include <stdexcept>  // std::invalid_argument
+#include <sstream>    // std::stringstream
 
 #include "Arnoldi.h"
 
@@ -27,12 +27,13 @@ template <typename Scalar, typename ArnoldiOpType>
 class Lanczos : public Arnoldi<Scalar, ArnoldiOpType>
 {
 private:
-    using Index = Eigen::Index;
-    using Matrix = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-    using Vector = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
-    using MapMat = Eigen::Map<Matrix>;
-    using MapVec = Eigen::Map<Vector>;
-    using MapConstMat = Eigen::Map<const Matrix>;
+    typedef Eigen::Index Index;
+    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
+    typedef Eigen::Map<Matrix> MapMat;
+    typedef Eigen::Map<Vector> MapVec;
+    typedef Eigen::Map<const Matrix> MapConstMat;
+    typedef Eigen::Map<const Vector> MapConstVec;
 
     using Arnoldi<Scalar, ArnoldiOpType>::m_op;
     using Arnoldi<Scalar, ArnoldiOpType>::m_n;
@@ -46,16 +47,13 @@ private:
     using Arnoldi<Scalar, ArnoldiOpType>::m_eps;
 
 public:
-    // Forward parameter `op` to the constructor of Arnoldi
-    template <typename T>
-    Lanczos(T&& op, Index m) :
-        Arnoldi<Scalar, ArnoldiOpType>(std::forward<T>(op), m)
+    Lanczos(const ArnoldiOpType& op, Index m) :
+        Arnoldi<Scalar, ArnoldiOpType>(op, m)
     {}
 
     // Lanczos factorization starting from step-k
-    void factorize_from(Index from_k, Index to_m, Index& op_counter) override
+    void factorize_from(Index from_k, Index to_m, Index& op_counter)
     {
-        using std::abs;
         using std::sqrt;
 
         if (to_m <= from_k)
@@ -63,13 +61,12 @@ public:
 
         if (from_k > m_k)
         {
-            std::string msg = "Lanczos: from_k (= " + std::to_string(from_k) +
-                ") is larger than the current subspace dimension (= " + std::to_string(m_k) + ")";
-            throw std::invalid_argument(msg);
+            std::stringstream msg;
+            msg << "Lanczos: from_k (= " << from_k << ") is larger than the current subspace dimension (= " << m_k << ")";
+            throw std::invalid_argument(msg.str());
         }
 
         const Scalar beta_thresh = m_eps * sqrt(Scalar(m_n));
-        const Scalar eps_sqrt = sqrt(m_eps);
 
         // Pre-allocate vectors
         Vector Vf(to_m);
@@ -81,62 +78,39 @@ public:
 
         for (Index i = from_k; i <= to_m - 1; i++)
         {
+            bool restart = false;
             // If beta = 0, then the next V is not full rank
             // We need to generate a new residual vector that is orthogonal
             // to the current V, which we call a restart
-            //
-            // A simple criterion is beta < near_0, but it may be too stringent
-            // Another heuristic is to test whether V'B(f/||f||) ~= 0 when ||f|| is small,
-            // and to reduce the computational cost, we only use the latest Vi
-
-            // Test the first criterion
-            bool restart = (m_beta < m_near_0);
-            // If not met, test the second criterion
-            // v is the (i+1)-th column of V
-            MapVec v(&m_fac_V(0, i), m_n);
-            if (!restart)
-            {
-                // Save v <- f / ||f|| to the (i+1)-th column of V
-                v.noalias() = m_fac_f / m_beta;
-                if (m_beta < eps_sqrt)
-                {
-                    // Test Vi'v
-                    const Scalar Viv = m_op.inner_product(m_fac_V.col(i - 1), v);
-                    // Restart V if Vi'v is much larger than eps
-                    restart = (abs(Viv) > eps_sqrt);
-                }
-            }
-
-            if (restart)
+            if (m_beta < m_near_0)
             {
                 MapConstMat V(m_fac_V.data(), m_n, i);  // The first i columns
-                this->expand_basis(V, 2 * i, m_fac_f, m_beta, op_counter);
-                v.noalias() = m_fac_f / m_beta;
+                this->expand_basis(V, 2 * i, m_fac_f, m_beta);
+                restart = true;
             }
 
-            // Whether there is a restart or not, right now the (i+1)-th column of V
-            // contains f / ||f||
+            // v <- f / ||f||
+            MapVec v(&m_fac_V(0, i), m_n);  // The (i+1)-th column
+            v.noalias() = m_fac_f / m_beta;
 
             // Note that H[i+1, i] equals to the unrestarted beta
             m_fac_H(i, i - 1) = restart ? Scalar(0) : m_beta;
-            m_fac_H(i - 1, i) = m_fac_H(i, i - 1);  // Due to symmetry
 
             // w <- A * v
             m_op.perform_op(v.data(), w.data());
             op_counter++;
 
-            // f <- w - V * V'Bw = w - H[i+1, i] * V{i} - H[i+1, i+1] * V{i+1}
-            // If restarting, we know that H[i+1, i] = 0
-            // First do w <- w - H[i+1, i] * V{i}, see the discussions in Section 2.3 of
-            // Cullum and Willoughby (2002). Lanczos Algorithms for Large Symmetric Eigenvalue Computations: Vol. 1
-            if (!restart)
-                w.noalias() -= m_fac_H(i, i - 1) * m_fac_V.col(i - 1);
-
             // H[i+1, i+1] = <v, w> = v'Bw
+            m_fac_H(i - 1, i) = m_fac_H(i, i - 1);  // Due to symmetry
             m_fac_H(i, i) = m_op.inner_product(v, w);
 
-            // f <- w - H[i+1, i+1] * V{i+1}
-            m_fac_f.noalias() = w - m_fac_H(i, i) * v;
+            // f <- w - V * V'Bw = w - H[i+1, i] * V{i} - H[i+1, i+1] * V{i+1}
+            // If restarting, we know that H[i+1, i] = 0
+            if (restart)
+                m_fac_f.noalias() = w - m_fac_H(i, i) * v;
+            else
+                m_fac_f.noalias() = w - m_fac_H(i, i - 1) * m_fac_V.col(i - 1) - m_fac_H(i, i) * v;
+
             m_beta = m_op.norm(m_fac_f);
 
             // f/||f|| is going to be the next column of V, so we need to test
@@ -181,29 +155,13 @@ public:
     }
 
     // Apply H -> Q'HQ, where Q is from a tridiagonal QR decomposition
-    // Function overloading here, not overriding
     void compress_H(const TridiagQR<Scalar>& decomp)
     {
         decomp.matrix_QtHQ(m_fac_H);
         m_k--;
     }
-
-    // In some cases we know that H has the form H = [X   e   0],
-    //                                               [e'  s   0]
-    //                                               [0   0   D]
-    // where X is an irreducible tridiagonal matrix, D is a diagonal matrix,
-    // s is a scalar, and e = (0, ..., 0, eps), eps ~= 0
-    //
-    // In this case we can force H[m+1, m] = H[m, m+1] = 0 and H[m+1, m+1] = s,
-    // where m is the size of X
-    void deflate_H(Index irr_size, const Scalar& s)
-    {
-        m_fac_H(irr_size, irr_size - 1) = Scalar(0);
-        m_fac_H(irr_size - 1, irr_size) = Scalar(0);
-        m_fac_H(irr_size, irr_size) = s;
-    }
 };
 
 }  // namespace Spectra
 
-#endif  // SPECTRA_LANCZOS_H
+#endif  // LANCZOS_H

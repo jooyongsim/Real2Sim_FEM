@@ -1,11 +1,11 @@
-// Copyright (C) 2018-2023 Yixuan Qiu <yixuan.qiu@cos.name>
+// Copyright (C) 2018-2019 Yixuan Qiu <yixuan.qiu@cos.name>
 //
 // This Source Code Form is subject to the terms of the Mozilla
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#ifndef SPECTRA_GEN_EIGS_BASE_H
-#define SPECTRA_GEN_EIGS_BASE_H
+#ifndef GEN_EIGS_BASE_H
+#define GEN_EIGS_BASE_H
 
 #include <Eigen/Core>
 #include <vector>     // std::vector
@@ -14,7 +14,6 @@
 #include <complex>    // std::complex, std::conj, std::norm, std::abs
 #include <stdexcept>  // std::invalid_argument
 
-#include "Util/Version.h"
 #include "Util/TypeTraits.h"
 #include "Util/SelectionRule.h"
 #include "Util/CompInfo.h"
@@ -34,30 +33,32 @@ namespace Spectra {
 /// It is kept here to provide the documentation for member functions of concrete eigen solvers
 /// such as GenEigsSolver and GenEigsRealShiftSolver.
 ///
-template <typename OpType, typename BOpType>
+template <typename Scalar,
+          int SelectionRule,
+          typename OpType,
+          typename BOpType>
 class GenEigsBase
 {
 private:
-    using Scalar = typename OpType::Scalar;
-    using Index = Eigen::Index;
-    using Matrix = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-    using Vector = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
-    using Array = Eigen::Array<Scalar, Eigen::Dynamic, 1>;
-    using BoolArray = Eigen::Array<bool, Eigen::Dynamic, 1>;
-    using MapMat = Eigen::Map<Matrix>;
-    using MapVec = Eigen::Map<Vector>;
-    using MapConstVec = Eigen::Map<const Vector>;
+    typedef Eigen::Index Index;
+    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
+    typedef Eigen::Array<Scalar, Eigen::Dynamic, 1> Array;
+    typedef Eigen::Array<bool, Eigen::Dynamic, 1> BoolArray;
+    typedef Eigen::Map<Matrix> MapMat;
+    typedef Eigen::Map<Vector> MapVec;
+    typedef Eigen::Map<const Vector> MapConstVec;
 
-    using Complex = std::complex<Scalar>;
-    using ComplexMatrix = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
-    using ComplexVector = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
+    typedef std::complex<Scalar> Complex;
+    typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic> ComplexMatrix;
+    typedef Eigen::Matrix<Complex, Eigen::Dynamic, 1> ComplexVector;
 
-    using ArnoldiOpType = ArnoldiOp<Scalar, OpType, BOpType>;
-    using ArnoldiFac = Arnoldi<Scalar, ArnoldiOpType>;
+    typedef ArnoldiOp<Scalar, OpType, BOpType> ArnoldiOpType;
+    typedef Arnoldi<Scalar, ArnoldiOpType> ArnoldiFac;
 
 protected:
     // clang-format off
-    OpType&       m_op;        // object to conduct matrix operation,
+    OpType*       m_op;        // object to conduct matrix operation,
                                // e.g. matrix-vector product
     const Index   m_n;         // dimension of matrix A
     const Index   m_nev;       // number of eigenvalues requested
@@ -69,11 +70,16 @@ protected:
 
     ComplexVector m_ritz_val;  // Ritz values
     ComplexMatrix m_ritz_vec;  // Ritz vectors
-    ComplexVector m_ritz_est;  // last row of m_ritz_vec, also called the Ritz estimates
+    ComplexVector m_ritz_est;  // last row of m_ritz_vec
 
 private:
     BoolArray     m_ritz_conv; // indicator of the convergence of Ritz values
-    CompInfo      m_info;      // status of the computation
+    int           m_info;      // status of the computation
+
+    const Scalar  m_near_0;    // a very small value, but 1.0 / m_near_0 does not overflow
+                               // ~= 1e-307 for the "double" type
+    const Scalar  m_eps;       // the machine precision, ~= 1e-16 for the "double" type
+    const Scalar  m_eps23;     // m_eps^(2/3), used to test the convergence
     // clang-format on
 
     // Real Ritz values calculated from UpperHessenbergEigen have exact zero imaginary part
@@ -83,7 +89,7 @@ private:
     static bool is_conj(const Complex& v1, const Complex& v2) { return v1 == Eigen::numext::conj(v2); }
 
     // Implicitly restarted Arnoldi factorization
-    void restart(Index k, SortRule selection)
+    void restart(Index k)
     {
         using std::norm;
 
@@ -134,27 +140,19 @@ private:
         m_fac.compress_V(Q);
         m_fac.factorize_from(k, m_ncv, m_nmatop);
 
-        retrieve_ritzpair(selection);
+        retrieve_ritzpair();
     }
 
     // Calculates the number of converged Ritz values
-    Index num_converged(const Scalar& tol)
+    Index num_converged(Scalar tol)
     {
-        using std::pow;
-
-        // The machine precision, ~= 1e-16 for the "double" type
-        const Scalar eps = TypeTraits<Scalar>::epsilon();
-        // std::pow() is not constexpr, so we do not declare eps23 to be constexpr
-        // But most compilers should be able to compute eps23 at compile time
-        const Scalar eps23 = pow(eps, Scalar(2) / 3);
-
-        // thresh = tol * max(eps23, abs(theta)), theta for Ritz value
-        Array thresh = tol * m_ritz_val.head(m_nev).array().abs().max(eps23);
+        // thresh = tol * max(m_eps23, abs(theta)), theta for Ritz value
+        Array thresh = tol * m_ritz_val.head(m_nev).array().abs().max(m_eps23);
         Array resid = m_ritz_est.head(m_nev).array().abs() * m_fac.f_norm();
         // Converged "wanted" Ritz values
         m_ritz_conv = (resid < thresh);
 
-        return m_ritz_conv.count();
+        return m_ritz_conv.cast<Index>().sum();
     }
 
     // Returns the adjusted nev for restarting
@@ -162,17 +160,13 @@ private:
     {
         using std::abs;
 
-        // A very small value, but 1.0 / near_0 does not overflow
-        // ~= 1e-307 for the "double" type
-        const Scalar near_0 = TypeTraits<Scalar>::min() * Scalar(10);
-
         Index nev_new = m_nev;
         for (Index i = m_nev; i < m_ncv; i++)
-            if (abs(m_ritz_est[i]) < near_0)
+            if (abs(m_ritz_est[i]) < m_near_0)
                 nev_new++;
 
         // Adjust nev_new, according to dnaup2.f line 660~674 in ARPACK
-        nev_new += (std::min)(nconv, (m_ncv - nev_new) / 2);
+        nev_new += std::min(nconv, (m_ncv - nev_new) / 2);
         if (nev_new == 1 && m_ncv >= 6)
             nev_new = m_ncv / 2;
         else if (nev_new == 1 && m_ncv > 3)
@@ -193,55 +187,14 @@ private:
     }
 
     // Retrieves and sorts Ritz values and Ritz vectors
-    void retrieve_ritzpair(SortRule selection)
+    void retrieve_ritzpair()
     {
         UpperHessenbergEigen<Scalar> decomp(m_fac.matrix_H());
         const ComplexVector& evals = decomp.eigenvalues();
         ComplexMatrix evecs = decomp.eigenvectors();
 
-        // Sort Ritz values and put the wanted ones at the beginning
-        std::vector<Index> ind;
-        switch (selection)
-        {
-            case SortRule::LargestMagn:
-            {
-                SortEigenvalue<Complex, SortRule::LargestMagn> sorting(evals.data(), m_ncv);
-                sorting.swap(ind);
-                break;
-            }
-            case SortRule::LargestReal:
-            {
-                SortEigenvalue<Complex, SortRule::LargestReal> sorting(evals.data(), m_ncv);
-                sorting.swap(ind);
-                break;
-            }
-            case SortRule::LargestImag:
-            {
-                SortEigenvalue<Complex, SortRule::LargestImag> sorting(evals.data(), m_ncv);
-                sorting.swap(ind);
-                break;
-            }
-            case SortRule::SmallestMagn:
-            {
-                SortEigenvalue<Complex, SortRule::SmallestMagn> sorting(evals.data(), m_ncv);
-                sorting.swap(ind);
-                break;
-            }
-            case SortRule::SmallestReal:
-            {
-                SortEigenvalue<Complex, SortRule::SmallestReal> sorting(evals.data(), m_ncv);
-                sorting.swap(ind);
-                break;
-            }
-            case SortRule::SmallestImag:
-            {
-                SortEigenvalue<Complex, SortRule::SmallestImag> sorting(evals.data(), m_ncv);
-                sorting.swap(ind);
-                break;
-            }
-            default:
-                throw std::invalid_argument("unsupported selection rule");
-        }
+        SortEigenvalue<Complex, SelectionRule> sorting(evals.data(), evals.size());
+        std::vector<int> ind = sorting.index();
 
         // Copy the Ritz values and vectors to m_ritz_val and m_ritz_vec, respectively
         for (Index i = 0; i < m_ncv; i++)
@@ -258,45 +211,44 @@ private:
 protected:
     // Sorts the first nev Ritz pairs in the specified order
     // This is used to return the final results
-    virtual void sort_ritzpair(SortRule sort_rule)
+    virtual void sort_ritzpair(int sort_rule)
     {
-        std::vector<Index> ind;
+        // First make sure that we have a valid index vector
+        SortEigenvalue<Complex, LARGEST_MAGN> sorting(m_ritz_val.data(), m_nev);
+        std::vector<int> ind = sorting.index();
+
         switch (sort_rule)
         {
-            case SortRule::LargestMagn:
+            case LARGEST_MAGN:
+                break;
+            case LARGEST_REAL:
             {
-                SortEigenvalue<Complex, SortRule::LargestMagn> sorting(m_ritz_val.data(), m_nev);
-                sorting.swap(ind);
+                SortEigenvalue<Complex, LARGEST_REAL> sorting(m_ritz_val.data(), m_nev);
+                ind = sorting.index();
                 break;
             }
-            case SortRule::LargestReal:
+            case LARGEST_IMAG:
             {
-                SortEigenvalue<Complex, SortRule::LargestReal> sorting(m_ritz_val.data(), m_nev);
-                sorting.swap(ind);
+                SortEigenvalue<Complex, LARGEST_IMAG> sorting(m_ritz_val.data(), m_nev);
+                ind = sorting.index();
                 break;
             }
-            case SortRule::LargestImag:
+            case SMALLEST_MAGN:
             {
-                SortEigenvalue<Complex, SortRule::LargestImag> sorting(m_ritz_val.data(), m_nev);
-                sorting.swap(ind);
+                SortEigenvalue<Complex, SMALLEST_MAGN> sorting(m_ritz_val.data(), m_nev);
+                ind = sorting.index();
                 break;
             }
-            case SortRule::SmallestMagn:
+            case SMALLEST_REAL:
             {
-                SortEigenvalue<Complex, SortRule::SmallestMagn> sorting(m_ritz_val.data(), m_nev);
-                sorting.swap(ind);
+                SortEigenvalue<Complex, SMALLEST_REAL> sorting(m_ritz_val.data(), m_nev);
+                ind = sorting.index();
                 break;
             }
-            case SortRule::SmallestReal:
+            case SMALLEST_IMAG:
             {
-                SortEigenvalue<Complex, SortRule::SmallestReal> sorting(m_ritz_val.data(), m_nev);
-                sorting.swap(ind);
-                break;
-            }
-            case SortRule::SmallestImag:
-            {
-                SortEigenvalue<Complex, SortRule::SmallestImag> sorting(m_ritz_val.data(), m_nev);
-                sorting.swap(ind);
+                SortEigenvalue<Complex, SMALLEST_IMAG> sorting(m_ritz_val.data(), m_nev);
+                ind = sorting.index();
                 break;
             }
             default:
@@ -322,15 +274,18 @@ protected:
 public:
     /// \cond
 
-    GenEigsBase(OpType& op, const BOpType& Bop, Index nev, Index ncv) :
+    GenEigsBase(OpType* op, BOpType* Bop, Index nev, Index ncv) :
         m_op(op),
-        m_n(m_op.rows()),
+        m_n(m_op->rows()),
         m_nev(nev),
         m_ncv(ncv > m_n ? m_n : ncv),
         m_nmatop(0),
         m_niter(0),
         m_fac(ArnoldiOpType(op, Bop), m_ncv),
-        m_info(CompInfo::NotComputed)
+        m_info(NOT_COMPUTED),
+        m_near_0(TypeTraits<Scalar>::min() * Scalar(10)),
+        m_eps(Eigen::NumTraits<Scalar>::epsilon()),
+        m_eps23(Eigen::numext::pow(m_eps, Scalar(2.0) / 3))
     {
         if (nev < 1 || nev > m_n - 2)
             throw std::invalid_argument("nev must satisfy 1 <= nev <= n - 2, n is the size of matrix");
@@ -393,33 +348,28 @@ public:
     ///
     /// Conducts the major computation procedure.
     ///
-    /// \param selection  An enumeration value indicating the selection rule of
-    ///                   the requested eigenvalues, for example `SortRule::LargestMagn`
-    ///                   to retrieve eigenvalues with the largest magnitude.
-    ///                   The full list of enumeration values can be found in
-    ///                   \ref Enumerations.
     /// \param maxit      Maximum number of iterations allowed in the algorithm.
     /// \param tol        Precision parameter for the calculated eigenvalues.
-    /// \param sorting    Rule to sort the eigenvalues and eigenvectors.
+    /// \param sort_rule  Rule to sort the eigenvalues and eigenvectors.
     ///                   Supported values are
-    ///                   `SortRule::LargestMagn`, `SortRule::LargestReal`,
-    ///                   `SortRule::LargestImag`, `SortRule::SmallestMagn`,
-    ///                   `SortRule::SmallestReal` and `SortRule::SmallestImag`,
-    ///                   for example `SortRule::LargestMagn` indicates that eigenvalues
+    ///                   `Spectra::LARGEST_MAGN`, `Spectra::LARGEST_REAL`,
+    ///                   `Spectra::LARGEST_IMAG`, `Spectra::SMALLEST_MAGN`,
+    ///                   `Spectra::SMALLEST_REAL` and `Spectra::SMALLEST_IMAG`,
+    ///                   for example `LARGEST_MAGN` indicates that eigenvalues
     ///                   with largest magnitude come first.
     ///                   Note that this argument is only used to
     ///                   **sort** the final result, and the **selection** rule
     ///                   (e.g. selecting the largest or smallest eigenvalues in the
-    ///                   full spectrum) is specified by the parameter `selection`.
+    ///                   full spectrum) is specified by the template parameter
+    ///                   `SelectionRule` of GenEigsSolver.
     ///
     /// \return Number of converged eigenvalues.
     ///
-    Index compute(SortRule selection = SortRule::LargestMagn, Index maxit = 1000,
-                  Scalar tol = 1e-10, SortRule sorting = SortRule::LargestMagn)
+    Index compute(Index maxit = 1000, Scalar tol = 1e-10, int sort_rule = LARGEST_MAGN)
     {
         // The m-step Arnoldi factorization
         m_fac.factorize_from(1, m_ncv, m_nmatop);
-        retrieve_ritzpair(selection);
+        retrieve_ritzpair();
         // Restarting
         Index i, nconv = 0, nev_adj;
         for (i = 0; i < maxit; i++)
@@ -429,22 +379,22 @@ public:
                 break;
 
             nev_adj = nev_adjusted(nconv);
-            restart(nev_adj, selection);
+            restart(nev_adj);
         }
         // Sorting results
-        sort_ritzpair(sorting);
+        sort_ritzpair(sort_rule);
 
         m_niter += i + 1;
-        m_info = (nconv >= m_nev) ? CompInfo::Successful : CompInfo::NotConverging;
+        m_info = (nconv >= m_nev) ? SUCCESSFUL : NOT_CONVERGING;
 
-        return (std::min)(m_nev, nconv);
+        return std::min(m_nev, nconv);
     }
 
     ///
     /// Returns the status of the computation.
     /// The full list of enumeration values can be found in \ref Enumerations.
     ///
-    CompInfo info() const { return m_info; }
+    int info() const { return m_info; }
 
     ///
     /// Returns the number of iterations used in the computation.
@@ -496,7 +446,7 @@ public:
     ComplexMatrix eigenvectors(Index nvec) const
     {
         const Index nconv = m_ritz_conv.cast<Index>().sum();
-        nvec = (std::min)(nvec, nconv);
+        nvec = std::min(nvec, nconv);
         ComplexMatrix res(m_n, nvec);
 
         if (!nvec)
@@ -529,4 +479,4 @@ public:
 
 }  // namespace Spectra
 
-#endif  // SPECTRA_GEN_EIGS_BASE_H
+#endif  // GEN_EIGS_BASE_H

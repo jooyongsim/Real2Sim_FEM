@@ -1,16 +1,16 @@
-// Copyright (C) 2018-2023 Yixuan Qiu <yixuan.qiu@cos.name>
+// Copyright (C) 2018-2019 Yixuan Qiu <yixuan.qiu@cos.name>
 //
 // This Source Code Form is subject to the terms of the Mozilla
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#ifndef SPECTRA_ARNOLDI_H
-#define SPECTRA_ARNOLDI_H
+#ifndef ARNOLDI_H
+#define ARNOLDI_H
 
 #include <Eigen/Core>
 #include <cmath>      // std::sqrt
-#include <utility>    // std::move
 #include <stdexcept>  // std::invalid_argument
+#include <sstream>    // std::stringstream
 
 #include "../MatOp/internal/ArnoldiOp.h"
 #include "../Util/TypeTraits.h"
@@ -31,93 +31,66 @@ template <typename Scalar, typename ArnoldiOpType>
 class Arnoldi
 {
 private:
-    using Index = Eigen::Index;
-    using Matrix = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-    using Vector = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
-    using MapVec = Eigen::Map<Vector>;
-    using MapConstMat = Eigen::Map<const Matrix>;
-    using MapConstVec = Eigen::Map<const Vector>;
+    typedef Eigen::Index Index;
+    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
+    typedef Eigen::Map<Matrix> MapMat;
+    typedef Eigen::Map<Vector> MapVec;
+    typedef Eigen::Map<const Matrix> MapConstMat;
+    typedef Eigen::Map<const Vector> MapConstVec;
 
 protected:
-    // A very small value, but 1.0 / m_near_0 does not overflow
-    // ~= 1e-307 for the "double" type
-    const Scalar m_near_0 = TypeTraits<Scalar>::min() * Scalar(10);
-    // The machine precision, ~= 1e-16 for the "double" type
-    const Scalar m_eps = TypeTraits<Scalar>::epsilon();
+    // clang-format off
+    ArnoldiOpType m_op;       // Operators for the Arnoldi factorization
 
-    ArnoldiOpType m_op;  // Operators for the Arnoldi factorization
-    const Index m_n;     // dimension of A
-    const Index m_m;     // maximum dimension of subspace V
-    Index m_k;           // current dimension of subspace V
-    Matrix m_fac_V;      // V matrix in the Arnoldi factorization
-    Matrix m_fac_H;      // H matrix in the Arnoldi factorization
-    Vector m_fac_f;      // residual in the Arnoldi factorization
-    Scalar m_beta;       // ||f||, B-norm of f
+    const Index m_n;          // dimension of A
+    const Index m_m;          // maximum dimension of subspace V
+    Index       m_k;          // current dimension of subspace V
 
-    // Given orthonormal basis V (w.r.t. B), find a nonzero vector f such that V'Bf = 0
-    // With rounding errors, we hope V'B(f/||f||) < eps
+    Matrix m_fac_V;           // V matrix in the Arnoldi factorization
+    Matrix m_fac_H;           // H matrix in the Arnoldi factorization
+    Vector m_fac_f;           // residual in the Arnoldi factorization
+    Scalar m_beta;            // ||f||, B-norm of f
+
+    const Scalar m_near_0;    // a very small value, but 1.0 / m_near_0 does not overflow
+                              // ~= 1e-307 for the "double" type
+    const Scalar m_eps;       // the machine precision, ~= 1e-16 for the "double" type
+    // clang-format on
+
+    // Given orthonormal basis functions V, find a nonzero vector f such that V'Bf = 0
     // Assume that f has been properly allocated
-    void expand_basis(MapConstMat& V, const Index seed, Vector& f, Scalar& fnorm, Index& op_counter)
+    void expand_basis(MapConstMat& V, const Index seed, Vector& f, Scalar& fnorm)
     {
         using std::sqrt;
 
-        Vector v(m_n), Vf(V.cols());
+        const Scalar thresh = m_eps * sqrt(Scalar(m_n));
+        Vector Vf(V.cols());
         for (Index iter = 0; iter < 5; iter++)
         {
             // Randomly generate a new vector and orthogonalize it against V
             SimpleRandom<Scalar> rng(seed + 123 * iter);
-            // The first try forces f to be in the range of A
-            if (iter == 0)
-            {
-                rng.random_vec(v);
-                m_op.perform_op(v.data(), f.data());
-                op_counter++;
-            }
-            else
-            {
-                rng.random_vec(f);
-            }
+            f.noalias() = rng.random_vec(m_n);
             // f <- f - V * V'Bf, so that f is orthogonal to V in B-norm
             m_op.trans_product(V, f, Vf);
             f.noalias() -= V * Vf;
             // fnorm <- ||f||
             fnorm = m_op.norm(f);
 
-            // Compute V'Bf again
-            m_op.trans_product(V, f, Vf);
-            // Test whether V'B(f/||f||) < eps
-            Scalar ortho_err = Vf.cwiseAbs().maxCoeff();
-            // If not, iteratively correct the residual
-            int count = 0;
-            while (count < 3 && ortho_err >= m_eps * fnorm)
-            {
-                // f <- f - V * Vf
-                f.noalias() -= V * Vf;
-                // beta <- ||f||
-                fnorm = m_op.norm(f);
-
-                m_op.trans_product(V, f, Vf);
-                ortho_err = Vf.cwiseAbs().maxCoeff();
-                count++;
-            }
-
-            // If the condition is satisfied, simply return
-            // Otherwise, go to the next iteration and try a new random vector
-            if (ortho_err < m_eps * fnorm)
+            // If fnorm is too close to zero, we try a new random vector,
+            // otherwise return the result
+            if (fnorm >= thresh)
                 return;
         }
     }
 
 public:
-    // Copy an ArnoldiOp
     Arnoldi(const ArnoldiOpType& op, Index m) :
-        m_op(op), m_n(op.rows()), m_m(m), m_k(0)
+        m_op(op), m_n(op.rows()), m_m(m), m_k(0),
+        m_near_0(TypeTraits<Scalar>::min() * Scalar(10)),
+        m_eps(Eigen::NumTraits<Scalar>::epsilon())
     {}
 
-    // Move an ArnoldiOp
-    Arnoldi(ArnoldiOpType&& op, Index m) :
-        m_op(std::move(op)), m_n(op.rows()), m_m(m), m_k(0)
-    {}
+    virtual ~Arnoldi() {}
 
     // Const-reference to internal structures
     const Matrix& matrix_V() const { return m_fac_V; }
@@ -129,8 +102,6 @@ public:
     // Initialize with an operator and an initial vector
     void init(MapConstVec& v0, Index& op_counter)
     {
-        using std::abs;
-
         m_fac_V.resize(m_n, m_m);
         m_fac_H.resize(m_m, m_m);
         m_fac_f.resize(m_n);
@@ -143,13 +114,9 @@ public:
 
         // Points to the first column of V
         MapVec v(m_fac_V.data(), m_n);
-        // Force v to be in the range of A, i.e., v = A * v0
-        m_op.perform_op(v0.data(), v.data());
-        op_counter++;
 
         // Normalize
-        const Scalar vnorm = m_op.norm(v);
-        v /= vnorm;
+        v.noalias() = v0 / v0norm;
 
         // Compute H and f
         Vector w(m_n);
@@ -159,11 +126,9 @@ public:
         m_fac_H(0, 0) = m_op.inner_product(v, w);
         m_fac_f.noalias() = w - v * m_fac_H(0, 0);
 
-        // In some cases, H[1,1] is already an eigenvalue of A,
-        // so f would be zero in exact arithmetics. But due to rounding errors,
-        // it may contain tiny fluctuations. When this happens, we force f to be zero,
-        // so that it can be restarted in the subsequent Arnoldi factorization
-        if (m_fac_f.cwiseAbs().maxCoeff() < m_eps * abs(m_fac_H(0, 0)))
+        // In some cases f is zero in exact arithmetics, but due to rounding errors
+        // it may contain tiny fluctuations. When this happens, we force f to be zero
+        if (m_fac_f.cwiseAbs().maxCoeff() < m_eps)
         {
             m_fac_f.setZero();
             m_beta = Scalar(0);
@@ -187,9 +152,9 @@ public:
 
         if (from_k > m_k)
         {
-            std::string msg = "Arnoldi: from_k (= " + std::to_string(from_k) +
-                ") is larger than the current subspace dimension (= " + std::to_string(m_k) + ")";
-            throw std::invalid_argument(msg);
+            std::stringstream msg;
+            msg << "Arnoldi: from_k (= " << from_k << ") is larger than the current subspace dimension (= " << m_k << ")";
+            throw std::invalid_argument(msg.str());
         }
 
         const Scalar beta_thresh = m_eps * sqrt(Scalar(m_n));
@@ -211,7 +176,7 @@ public:
             if (m_beta < m_near_0)
             {
                 MapConstMat V(m_fac_V.data(), m_n, i);  // The first i columns
-                expand_basis(V, 2 * i, m_fac_f, m_beta, op_counter);
+                expand_basis(V, 2 * i, m_fac_f, m_beta);
                 restart = true;
             }
 
@@ -316,4 +281,4 @@ public:
 
 }  // namespace Spectra
 
-#endif  // SPECTRA_ARNOLDI_H
+#endif  // ARNOLDI_H
