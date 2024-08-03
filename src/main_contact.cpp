@@ -22,7 +22,7 @@ using namespace MyFEM;
 #include "TemporalInterpolationField.h"
 #include "BoundaryFieldObjectiveFunction.h"
 #include "PointCloudObjectiveFunction.h"
-#include "../LBFGSpp/LBFGS.h"
+#include "../LBFGSpp/include/LBFGS.h"
 //#include "../LBFGSpp/Newton.h"
 #include "Remesher.h"
 
