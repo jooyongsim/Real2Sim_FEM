@@ -79,7 +79,8 @@ void PlaneFieldFromVTK::fitToPointCloud(std::string vtuPointCouldFileName){
 	}
 	printf("\n%% read \"%s\", have %d points.\n", vtuPointCouldFileName.c_str(), data->GetPoints()->GetNumberOfPoints() );
 	printf("\n%% type %d (double==%d, float==%d)\n", data->GetPoints()->GetDataType(),VTK_DOUBLE,VTK_FLOAT);
-	assert( data->GetPoints()->GetDataType()==VTK_FLOAT, "point coords not single floats" );
+	//assert( data->GetPoints()->GetDataType()==VTK_FLOAT, "point coords not single floats" );
+	assert( data->GetPoints()->GetDataType()==VTK_FLOAT && "point coords not single floats" );
 
 	Eigen::Map<Eigen::MatrixXf> points((float*)(data->GetPoints()->GetVoidPointer(0)), 3, data->GetPoints()->GetNumberOfPoints() );
 	//std::cout << std::endl << points.transpose() << std::endl;
