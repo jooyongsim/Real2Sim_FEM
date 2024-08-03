@@ -3,7 +3,7 @@
 
 #include <Eigen/Eigen>
 #include <vtkType.h>
-#include "../LBFGSpp/include/LBFGS.h"
+#include "../LBFGSpp/LBFGS.h"
 
 namespace MyFEM{
 	typedef Eigen::SparseMatrix<double,Eigen::RowMajor> SparseMatrixD;  // according to https://eigen.tuxfamily.org/dox/TopicMultiThreading.html BiCGSTAB works in parallel with a row-major sparse format - ToDo: test if it is actually faster ...
