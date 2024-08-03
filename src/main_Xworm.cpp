@@ -10,7 +10,7 @@
 #include "ViscousMaterialParameterHandler.h"
 #include "EigenmodeViscosityModel.h"
 #include "../LBFGSpp/LBFGS.h"
-#include "../LBFGSpp/Newton.h"
+//#include "../LBFGSpp/Newton.h"
 #include "../LBFGSpp/PLBFGS.h"
 using namespace MyFEM;
 

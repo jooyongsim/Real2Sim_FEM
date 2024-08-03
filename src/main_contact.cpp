@@ -23,7 +23,7 @@ using namespace MyFEM;
 #include "BoundaryFieldObjectiveFunction.h"
 #include "PointCloudObjectiveFunction.h"
 #include "../LBFGSpp/LBFGS.h"
-#include "../LBFGSpp/Newton.h"
+//#include "../LBFGSpp/Newton.h"
 #include "Remesher.h"
 
 #include "cmaes/CMAMinimizer.h"

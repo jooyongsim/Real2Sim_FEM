@@ -11,7 +11,7 @@
 #include "ViscousMaterialParameterHandler.h"
 
 #include "../LBFGSpp/LBFGS.h"
-#include "../LBFGSpp/Newton.h"
+//#include "../LBFGSpp/Newton.h"
 
 #include "vtkUnstructuredGrid.h"
 
