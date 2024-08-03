@@ -16,6 +16,8 @@ using std::isinf;
 #include <vtkDoubleArray.h>
 #include <vtkCellArray.h>
 
+#include <vtkSmartPointer.h>
+#include <vtkCellArrayIterator.h>
 // static ...
 unsigned int LinearFEM::MAX_SOLVER_ITERS  = 20;
 double       LinearFEM::FORCE_BALANCE_EPS = 1e-10;
