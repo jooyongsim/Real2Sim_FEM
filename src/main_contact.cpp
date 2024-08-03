@@ -11,6 +11,8 @@
 #include <vtkXMLUnstructuredGridReader.h>
 
 using namespace MyFEM;
+using std::ofstream;
+#include <cassert>
 
 #include "SensitivityAnalysis.h"
 #include "DirectSensitivity.h"
