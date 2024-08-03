@@ -77,6 +77,10 @@ endif()
 # local includes
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
+include_directories(${PROJECT_SOURCE_DIR}/LBFGSpp/include)
+include_directories(${PROJECT_SOURCE_DIR}/Spectra)
+
+
 FILE(GLOB SRC_HEADERS ${PROJECT_SOURCE_DIR}/src/*.h) # for convenience -> puts the headers into the MSVC project's file list
 add_executable(${PROJECT_NAME} ${SRC_HEADERS}
   "src/main.cpp"
