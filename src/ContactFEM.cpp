@@ -92,7 +92,7 @@ int ContactFEM::dynamicImplicitTanhPenaltyContactTimestep(double dt, double eps)
 		if( printConvergenceDebugInfo ) printf("%.4lg ", rn);
 
 		Eigen::VectorXd dv = linearSolver.solve( r );  //printf(" (s) ");
-		if( !isfinite( dv.squaredNorm() )){ printf("\n%% LINEAR SOLVER FAILED! (search direction magnitude non-finite) \n"); return -2;}
+		if( !std::isfinite( dv.squaredNorm() )){ printf("\n%% LINEAR SOLVER FAILED! (search direction magnitude non-finite) \n"); return -2;}
 
 		//line-search along dv ...
 		Eigen::VectorXd vs( v.size() );
@@ -116,7 +116,7 @@ int ContactFEM::dynamicImplicitTanhPenaltyContactTimestep(double dt, double eps)
 
 			rs = freeDOFnorm(r); //printf(" [[%8.3lg]] ", rs);
 			stepsize *= 0.5; ++lstep;
-		}while( ( (!isfinite(rs)) || rs > rn ) && lstep < max_linesearch );
+		}while( ( (!std::isfinite(rs)) || rs > rn ) && lstep < max_linesearch );
 
 		vi = vs;
 
@@ -202,7 +202,7 @@ int ContactFEM::dynamicImplicitClampedLinearPenaltyContactTimestep(double dt, do
 		if( printConvergenceDebugInfo ) printf("%.4lg ", rs);
 
 		Eigen::VectorXd dv = linearSolver.solve( r );  //printf(" (s) ");
-		if( !isfinite( dv.squaredNorm() )){ printf("\n%% LINEAR SOLVER FAILED! (search direction magnitude non-finite) \n"); return -2;}
+		if( !std::isfinite( dv.squaredNorm() )){ printf("\n%% LINEAR SOLVER FAILED! (search direction magnitude non-finite) \n"); return -2;}
 
 		//line-search along dv ...
 		Eigen::VectorXd vs( v.size() );
@@ -483,7 +483,7 @@ int ContactFEM::dynamicImplicitHybridPenaltyContactTimestep(double dt, double ep
 			if( printConvergenceDebugInfo ) printf("%.4lg ", rs);
 
 			Eigen::VectorXd dv = linearSolver.solve( r );  //printf(" (s) ");
-			if( !isfinite( dv.squaredNorm() )){ printf("\n%% LINEAR SOLVER FAILED! (search direction magnitude non-finite) \n"); return -2;}
+			if( !std::isfinite( dv.squaredNorm() )){ printf("\n%% LINEAR SOLVER FAILED! (search direction magnitude non-finite) \n"); return -2;}
 
 			//line-search along dv ...
 			Eigen::VectorXd vs( v.size() );
@@ -650,7 +650,7 @@ int ContactFEM::dynamicImplicitHybridPenaltyContactTimestep(double dt, double ep
 		}
 		linearSolver.compute(Sr);
 		dv = linearSolver.solve( rr ); // velocity change in rotated coordinate system
-		if( !isfinite( dv.squaredNorm() )){ printf("\n%% LINEAR SOLVER FAILED! (search direction magnitude non-finite) \n"); return -2;}
+		if( !std::isfinite( dv.squaredNorm() )){ printf("\n%% LINEAR SOLVER FAILED! (search direction magnitude non-finite) \n"); return -2;}
 
 		dv = (R.transpose()*dv).eval();
 
