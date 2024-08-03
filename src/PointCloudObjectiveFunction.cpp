@@ -199,7 +199,7 @@ void TimeDependentPointCloudObjectiveFunction::loadFromFileSeries(std::string fi
 	printf("\n%% frametimes: %s \n", (std::filesystem::exists( frameTimeFile ) ? frameTimeFile.string().c_str() : "MISSING") );
 	if( std::filesystem::exists( frameTimeFile ) ){
 		// read frametimes file
-		ifstream ftfile(frameTimeFile);
+		std::ifstream ftfile(frameTimeFile);
 		std::string line; int r; double t;
 		while( ftfile.good() ){
 			std::getline(ftfile, line);
