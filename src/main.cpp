@@ -206,7 +206,7 @@ int main_Box_wMarkers(int argc, char* argv[]){
 			GlobalElasticMaterialParameterHandler theQ(bodyID);
 			Eigen::VectorXd q( theQ.getNumberOfParams(theFEM) );
 			theQ.getCurrentParams(q, theFEM);
-			/**/
+			/*/
 			DirectSensitivity theSensitivity(thePhi, theQ, theFEM);
 			LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions);
 			printf("\n%% Optimizing initial elastostatic configuration with Gauss-Newton (direct sensitivity analysis) ");
@@ -230,7 +230,8 @@ int main_Box_wMarkers(int argc, char* argv[]){
 			int tmp = optimOptions.linesearch;
 			optimOptions.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_ARMIJO;
 			//optimOptions.precond.resize(1); optimOptions.precond(0)=0.9;
-			LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions); //minimize with Gauss-Newton
+			//LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions); //minimize with Gauss-Newton
+			LBFGSpp::LBFGSSolver<double> solver(optimOptions);
 			printf("\n%% Optimizing viscosity with Gauss-Newton (direct sensitivity analysis) ");
 			rInit += solver.minimize(theSensitivity,q,phi);
 			evInit += theSensitivity.getEvalCounter();
@@ -289,7 +290,8 @@ int main_Box_wMarkers(int argc, char* argv[]){
 
 			/**/
 			optimOptions.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_ARMIJO;
-			LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions); //minimize with Gauss-Newton
+			//LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions); //minimize with Gauss-Newton
+			LBFGSpp::LBFGSSolver<double> solver(optimOptions);
 			printf("\n%% Optimizing with Gauss-Newton (direct sensitivity analysis) ");
 			/*/ //PLBFGSSolver seems to not quite work as intended -- preconditioning wrong?
 			LBFGSpp::PLBFGSSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions); //minimize with H-preconditioned LBFGS
@@ -462,7 +464,7 @@ int main_Cylinder_5x2cm(int argc, char* argv[]){
 	
 	LBFGSpp::LBFGSParam<double> optimOptions2(optimOptions);											
 	optimOptions2.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_ARMIJO;
-	LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > newton(optimOptions);
+	//LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > newton(optimOptions);
 
 	// parameter vector ...
 	Eigen::VectorXd q;
@@ -1235,7 +1237,8 @@ int main(int argc, char* argv[]){
 			theSensitivity.resetEvalCounter();
 			printf("\n\n%% ***");
 			optimOptions.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_ARMIJO;
-			LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions);
+			//LBFGSpp::NewtonSolver<double,Eigen::ColPivHouseholderQR<Eigen::MatrixXd> > solver(optimOptions);
+			LBFGSpp::LBFGSSolver<double> solver(optimOptions);
 			int r = solver.minimize(theSensitivity, q, phi);
 
 			printf("\n%% *** solver iterations %d, fcn.evals %d, objective function value %.4lg", r, theSensitivity.getEvalCounter(), phi);
