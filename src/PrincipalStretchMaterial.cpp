@@ -34,7 +34,9 @@ void computePrincipalStretchAndDerivatives(Eigen::Vector3d& ps, Eigen::Matrix<do
 		for(int i=0;i<3;++i) for(int j=0;j<3;++j){ 
 			aF(i,j).derivatives() = Vector9d::Unit( 9, 3*i+j );
 		}
-		Eigen::JacobiSVD<Eigen::Matrix<adouble,3,3>, Eigen::HouseholderQRPreconditioner > svd(aF);
+		// Eigen::JacobiSVD<Eigen::Matrix<adouble,3,3>, Eigen::HouseholderQRPreconditioner > svd(aF);
+		Eigen::JacobiSVD<Eigen::Matrix<adouble, 3, 3>, Eigen::HouseholderQRPreconditioner> svd(aF, Eigen::ComputeFullU | Eigen::ComputeFullV);
+
 		Eigen::Matrix<adouble,3,1> aps = svd.singularValues();
 		for(int i=0;i<3;++i){
 			ps(i) = aps(i).value();
