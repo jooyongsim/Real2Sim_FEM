@@ -249,7 +249,7 @@ public:
 	// 	referenceMass = referenceMass_;
 	// }
 	ConsistentPerElementInertiaDerivativeAssemblyOp(SparseMatrixD& g_q_, Eigen::VectorXd& phiQ_q_, PerElementDensityMaterialParameterHandler& qHdl_, double referenceMass_=-1.0)
-	 : ConsistentInertiaDerivativeAssemblyOp(g_q_), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
+	 : ConsistentInertiaDerivativeAssemblyOp(reinterpret_cast<Eigen::MatrixXd&>(g_q_)), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
 		referenceMass = referenceMass_;
 	}
 
