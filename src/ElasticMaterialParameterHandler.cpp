@@ -181,8 +181,8 @@ public:
 	double elemMassDeriv;
 	Eigen::MatrixXd& dMdqa;
 	Eigen::Vector3d x0,xc,gx;
-	// ConsistentInertiaDerivativeAssemblyOp(Eigen::MatrixXd& g_q) : dMdqa(g_q) {}
-	ConsistentInertiaDerivativeAssemblyOp(const Eigen::MatrixXd& g_q) : dMdqa(g_q) {}
+	ConsistentInertiaDerivativeAssemblyOp(Eigen::MatrixXd& g_q) : dMdqa(g_q) {}
+	// ConsistentInertiaDerivativeAssemblyOp(const Eigen::MatrixXd& g_q) : dMdqa(g_q) {}
 	inline void initialize(LinearFEM& fem){
 		dMdqa.resize(fem.v.size(),1); dMdqa.setZero();
 	}
@@ -243,14 +243,14 @@ public:
 	MyFEM::PerElementDensityMaterialParameterHandler& qHdl;
 
 	std::vector<Eigen::Triplet<double> > g_q_triplets;
-	ConsistentPerElementInertiaDerivativeAssemblyOp(SparseMatrixD& g_q_, Eigen::VectorXd& phiQ_q_, PerElementDensityMaterialParameterHandler& qHdl_, double referenceMass_=-1.0)
-	 : ConsistentInertiaDerivativeAssemblyOp(Eigen::MatrixXd()), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
-		referenceMass = referenceMass_;
-	}
 	// ConsistentPerElementInertiaDerivativeAssemblyOp(SparseMatrixD& g_q_, Eigen::VectorXd& phiQ_q_, PerElementDensityMaterialParameterHandler& qHdl_, double referenceMass_=-1.0)
-	//  : ConsistentInertiaDerivativeAssemblyOp(g_q), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
+	//  : ConsistentInertiaDerivativeAssemblyOp(Eigen::MatrixXd()), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
 	// 	referenceMass = referenceMass_;
 	// }
+	ConsistentPerElementInertiaDerivativeAssemblyOp(SparseMatrixD& g_q_, Eigen::VectorXd& phiQ_q_, PerElementDensityMaterialParameterHandler& qHdl_, double referenceMass_=-1.0)
+	 : ConsistentInertiaDerivativeAssemblyOp(g_q), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
+		referenceMass = referenceMass_;
+	}
 
 	inline void initialize(LinearFEM& fem){
 		phiQ = 0.0;
