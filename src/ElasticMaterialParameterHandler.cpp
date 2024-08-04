@@ -235,14 +235,22 @@ double GlobalDensityParameterHandler::computeConstraintDerivatives(Eigen::Matrix
 
 class ConsistentPerElementInertiaDerivativeAssemblyOp : public ConsistentInertiaDerivativeAssemblyOp{
 public:
-	PerElementDensityMaterialParameterHandler& qHdl;
-	SparseMatrixD& g_q;
 	double phiQ = 0.0, referenceMass; // use negative referenceMass to disable regularizer
+
+	MyFEM::SparseMatrixD& g_q;
 	Eigen::VectorXd& phiQ_q; // regularize to total reference mass
+	MyFEM::PerElementDensityMaterialParameterHandler& qHdl;
+
 	std::vector<Eigen::Triplet<double> > g_q_triplets;
-	ConsistentPerElementInertiaDerivativeAssemblyOp(SparseMatrixD& g_q_, Eigen::VectorXd& phiQ_q_, PerElementDensityMaterialParameterHandler& qHdl_, double referenceMass_=-1.0) : ConsistentInertiaDerivativeAssemblyOp(Eigen::MatrixXd()), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
+	// ConsistentPerElementInertiaDerivativeAssemblyOp(SparseMatrixD& g_q_, Eigen::VectorXd& phiQ_q_, PerElementDensityMaterialParameterHandler& qHdl_, double referenceMass_=-1.0)
+	//  : ConsistentInertiaDerivativeAssemblyOp(Eigen::MatrixXd()), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
+	// 	referenceMass = referenceMass_;
+	// }
+	ConsistentPerElementInertiaDerivativeAssemblyOp(SparseMatrixD& g_q_, Eigen::VectorXd& phiQ_q_, PerElementDensityMaterialParameterHandler& qHdl_, double referenceMass_=-1.0)
+	 : ConsistentInertiaDerivativeAssemblyOp(g_q), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
 		referenceMass = referenceMass_;
 	}
+
 	inline void initialize(LinearFEM& fem){
 		phiQ = 0.0;
 		if( referenceMass>0.0 ){
