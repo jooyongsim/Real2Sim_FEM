@@ -9,11 +9,23 @@ using namespace MyFEM;
 using std::isnan;
 using std::isinf;
 
-// Custom isfinite function for AutoDiffScalar
+// Custom isfinite function for AutoDiffScalar // jysim
 template <typename DerType>
 bool custom_isfinite(const Eigen::AutoDiffScalar<DerType>& x) {
     return std::isfinite(x.value());
 }
+
+// Custom isfinite for AutoDiffScalar
+namespace Eigen {
+namespace numext {
+
+template<typename DerType>
+bool isfinite(const Eigen::AutoDiffScalar<DerType>& x) {
+    return isfinite(x.value()); // Check isfinite only on the value part
+}
+
+} // namespace numext
+} // namespace Eigen
 
 
 // local helper function
