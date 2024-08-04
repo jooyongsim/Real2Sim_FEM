@@ -9,6 +9,13 @@ using namespace MyFEM;
 using std::isnan;
 using std::isinf;
 
+// Custom isfinite function for AutoDiffScalar
+template <typename DerType>
+bool custom_isfinite(const Eigen::AutoDiffScalar<DerType>& x) {
+    return std::isfinite(x.value());
+}
+
+
 // local helper function
 void computePrincipalStretchAndDerivatives(Eigen::Vector3d& ps, Eigen::Matrix<double, 3,9>& dpsdF, const Eigen::Matrix3d& F){ 
 	ps.setZero(); dpsdF.setZero();
@@ -34,15 +41,24 @@ void computePrincipalStretchAndDerivatives(Eigen::Vector3d& ps, Eigen::Matrix<do
 		for(int i=0;i<3;++i) for(int j=0;j<3;++j){ 
 			aF(i,j).derivatives() = Vector9d::Unit( 9, 3*i+j );
 		}
-		// Eigen::JacobiSVD<Eigen::Matrix<adouble,3,3>, Eigen::HouseholderQRPreconditioner > svd(aF);
+		// Eigen::JacobiSVD<Eigen::Matrix<adouble,3,3>, Eigen::HouseholderQRPreconditioner > svd(aF); //jysim
 		Eigen::JacobiSVD<Eigen::Matrix<adouble, 3, 3>, Eigen::HouseholderQRPreconditioner> svd(aF, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
 		Eigen::Matrix<adouble,3,1> aps = svd.singularValues();
-		for(int i=0;i<3;++i){
-			ps(i) = aps(i).value();
-			dpsdF.row(i) = aps(i).derivatives().transpose();
-			//if( (F-Eigen::Matrix3d::Identity()).norm()>1e-5 ) cout << aps(i).derivatives().transpose() << endl;
-		}
+		// for(int i=0;i<3;++i){
+		// 	ps(i) = aps(i).value();
+		// 	dpsdF.row(i) = aps(i).derivatives().transpose();
+		// 	//if( (F-Eigen::Matrix3d::Identity()).norm()>1e-5 ) cout << aps(i).derivatives().transpose() << endl;
+		// }
+		for (int i = 0; i < 3; ++i) {
+			if (custom_isfinite(aps(i))) {
+				ps(i) = aps(i).value();
+				dpsdF.row(i) = aps(i).derivatives().transpose();
+			} else {
+				ps(i) = std::numeric_limits<double>::quiet_NaN();
+				dpsdF.row(i).setConstant(std::numeric_limits<double>::quiet_NaN());
+			}
+		}		
 	}
 }
 
