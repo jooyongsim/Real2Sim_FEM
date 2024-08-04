@@ -28,7 +28,10 @@ public:
 		phiQ_q.setZero();
 	}
 	inline void calculateElement(LinearFEM& fem, unsigned int k){
-		fem.computeVelocityGradient(dv, k, fem.getVectorVelocities());
+
+		MyFEM::VectXMap velocities = fem.getVectorVelocities();
+		fem.computeVelocityGradient(dv, k, velocities);
+		// fem.computeVelocityGradient(dv, k, fem.getVectorVelocities());
 		matrixComponentRefs(dv);
 		
 		double nu,h;
@@ -79,7 +82,10 @@ public:
 	inline void calculateElement(LinearFEM& fem, unsigned int k){
 		f_nus.resize(12,qHdl.getNumberOfParams(fem));
 		f_nus.setZero();
-		fem.computeVelocityGradient(dv, k, fem.getVectorVelocities());
+
+		MyFEM::VectXMap velocities = fem.getVectorVelocities();
+		fem.computeVelocityGradient(dv, k, velocities);		
+		// fem.computeVelocityGradient(dv, k, fem.getVectorVelocities());
 		matrixComponentRefs(dv);
 		
 		vtkSmartPointer<PowerSeriesViscosityModel> vm;
@@ -220,7 +226,10 @@ class EigenmodeViscosityForceDerivativeAssemblyOp : public ViscousForceDerivativ
 public:
 	EigenmodeViscosityForceDerivativeAssemblyOp(Eigen::MatrixXd& g_q_, Eigen::VectorXd& phiQ_q_, ParameterHandler& qHdl_, LinearFEM& fem) : ViscousForceDerivativeAssemblyOp(g_q_,phiQ_q_,qHdl_,fem) {}
 	inline void calculateElement(LinearFEM& fem, unsigned int k){
-		fem.computeVelocityGradient(dv, k, fem.getVectorVelocities());
+
+		MyFEM::VectXMap velocities = fem.getVectorVelocities();
+		fem.computeVelocityGradient(dv, k, velocities);		
+		// fem.computeVelocityGradient(dv, k, fem.getVectorVelocities());
 		matrixComponentRefs(dv);
 		
 		vtkSmartPointer<EigenmodeViscosityModel> vm;
