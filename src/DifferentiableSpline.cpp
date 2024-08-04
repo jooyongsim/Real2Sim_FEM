@@ -2,7 +2,8 @@
 
 // for derivatives of splines ...
 #include "vtkPiecewiseFunction.h"
-#include <unsupported\Eigen\AutoDiff>
+// #include <unsupported\Eigen\AutoDiff>
+#include <unsupported/Eigen/AutoDiff>
 
 using namespace MyFEM;
 

@@ -2,7 +2,8 @@
 #include "Materials.h"
 #include "ElasticMaterialParameterHandler.h"
 #include "DifferentiableSpline.h"
-#include <unsupported\Eigen\AutoDiff>
+// #include <unsupported\Eigen\AutoDiff>
+#include <unsupported/Eigen/AutoDiff>
 
 using namespace MyFEM;
 using std::isnan;
