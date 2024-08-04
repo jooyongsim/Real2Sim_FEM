@@ -243,12 +243,13 @@ public:
 	MyFEM::PerElementDensityMaterialParameterHandler& qHdl;
 
 	std::vector<Eigen::Triplet<double> > g_q_triplets;
+
 	// ConsistentPerElementInertiaDerivativeAssemblyOp(SparseMatrixD& g_q_, Eigen::VectorXd& phiQ_q_, PerElementDensityMaterialParameterHandler& qHdl_, double referenceMass_=-1.0)
 	//  : ConsistentInertiaDerivativeAssemblyOp(Eigen::MatrixXd()), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
 	// 	referenceMass = referenceMass_;
 	// }
 	ConsistentPerElementInertiaDerivativeAssemblyOp(SparseMatrixD& g_q_, Eigen::VectorXd& phiQ_q_, PerElementDensityMaterialParameterHandler& qHdl_, double referenceMass_=-1.0)
-	 : ConsistentInertiaDerivativeAssemblyOp(g_q), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
+	 : ConsistentInertiaDerivativeAssemblyOp(g_q_), g_q(g_q_), qHdl(qHdl_), phiQ_q(phiQ_q_) {
 		referenceMass = referenceMass_;
 	}
 
