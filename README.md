@@ -8,9 +8,9 @@ The current error is
 
 # Environment 
 - vtk9
-- spectra-git-v0.9.0
-- LBFGSpp-git-v0.3.0
-- Eigen version: 3.4.0
+- spectra-git-v0.9.0 (issues with later version, so I used this version)
+- LBFGSpp-git-v0.3.0 (this was the latest version currently)
+- Eigen version: 3.4.0 
 
 Sources for the paper Real2Sim: Visco-elastic parameter estimation from dynamic motion (and partially also ADD: Analytically Differentiable Dynamics for Multi-Body Systems with Frictional Contact)
 (https://dl.acm.org/doi/10.1145/3355089.3356548 and https://dl.acm.org/doi/abs/10.1145/3414685.3417766)
